@@ -1,8 +1,7 @@
 #define TrigWavePin 13
 #define EchoReceivePin 12
 #define KnownDistance 10 // Note this is in meters
-long scalingFactor;
-int scalingFactor = NULL;
+long scalingFactor = 0;
 
 void setup() {
   // put your setup code here, to run once:
@@ -20,12 +19,12 @@ void loop() {
   digitalWrite(TrigWavePin, LOW);
   delayMicroseconds(2);
 
-  / Trigger Wave
-  digitalWrite(trigPin, HIGH);
+  // Trigger Wave
+  digitalWrite(TrigWavePin, HIGH);
   delayMicroseconds(50);
-  digitalWrite(TrigWavePin, LOW); /Un trigger wave
+  digitalWrite(TrigWavePin, LOW); //Untrigger wave
 
-  /Calculate distance
+  //Calculate distance
   duration = pulseIn(EchoReceivePin, HIGH);
   if (scalingFactor == NULL) {
     distance = (duration * 340)/2;
@@ -35,11 +34,12 @@ void loop() {
     scalingFactor = KnownDistance/distance;
   }
 
-  Serial.printIn("Measured Distance:");
+  Serial.println("Measured Distance:");
   Serial.print(distance);
-  Serial.printIn("Scaling Factor:");
+  Serial.println("Scaling Factor:");
   Serial.print(scalingFactor);
 
   delay(1000);
 
 }
+

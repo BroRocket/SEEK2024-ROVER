@@ -10,6 +10,10 @@
 #define RightMotorEnable 6
 #define RightMotorIn1 5
 #define RightMotorIn2 4
+#define BASESPEED 125
+#define KP 1
+#define KI 1
+#define KD 1
 
 void set_direction(int in1, int in2, char direction[]) {
   if (direction == "Forward") {
@@ -94,6 +98,12 @@ void loop() {
   int Left_IR = digitalRead(IRLeft);
   int Right_IR = digitalRead(IRRight);
 
+  //int I = 0;
+  //int last_error = 0;
+  //set_direction(LeftMotorIn1, LeftMotorIn2, "Forward");
+  //set_direction(RightMotorIn1, RightMotorIn2, "Forward");
+  //PID(Left_IR, Right_IR, I, last_error);
+
   if (Left_IR == 0 and Right_IR == 0) {
     move_forward(175);
   } else if (Left_IR == 1 and Right_IR == 0) {
@@ -107,3 +117,15 @@ void loop() {
   delay(0.5);
 }
 
+void PID(int Left_IR, int Right_IR, int I, int last_error) {
+    int error = Left_IR - Right_IR;
+    int P = error;
+    I = I + error;
+    int D = error - last_error;
+
+    int correction = KP*P + KI*I + KD*D;
+    int left_motor_speed = BASESPEED + correction;
+    int right_motor_speed = BASESPEED - correction;
+
+    
+}
