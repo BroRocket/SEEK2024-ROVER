@@ -14,6 +14,11 @@
 #define KP 1
 #define KI 1
 #define KD 1
+#define TrigWavePin 13
+#define EchoReceivePin 12
+double scalingFactor = 1.13;
+double Convert = 1000000.0;
+double SPEEDOFSOUND = 331;
 
 void set_direction(int in1, int in2, char direction[]) {
   if (direction == "Forward") {
@@ -74,7 +79,7 @@ void stop_moving() {
 
 void setup() {
   // put your setup code here (Pins etc), to run once:
-
+  Serial.begin (9600);
   // Set up ultrasonic distance sensor
   pinMode(TrigWavePin, OUTPUT); // Sets pin 13 to output to trigger ultrasonic pulse
   pinMode(EchoReceivePin, INPUT); // Receives echo from sensor
@@ -91,12 +96,22 @@ void setup() {
   pinMode(RightMotorIn1, OUTPUT);
   pinMode(RightMotorIn2, OUTPUT);
   
+  // Set up ultrasonic distance sensor
+  pinMode(TrigWavePin, OUTPUT); // Sets pin 13 to output to trigger ultrasonic pulse
+  pinMode(EchoReceivePin, INPUT); // Receives echo from sensor
+
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   int Left_IR = digitalRead(IRLeft);
   int Right_IR = digitalRead(IRRight);
+  Serial.println("Left IR: ");
+  Serial.print(Left_IR);
+  Serial.println();
+  Serial.println("Right IR: ");
+  Serial.print(Right_IR);
+  Serial.println();
 
   //int I = 0;
   //int last_error = 0;
@@ -104,16 +119,26 @@ void loop() {
   //set_direction(RightMotorIn1, RightMotorIn2, "Forward");
   //PID(Left_IR, Right_IR, I, last_error);
 
-  if (Left_IR == 0 and Right_IR == 0) {
-    move_forward(175);
-  } else if (Left_IR == 1 and Right_IR == 0) {
-    turn_left(100);
-  } else if (Left_IR == 0 and Right_IR == 1) {
-    turn_right(100);
-  } else if (Left_IR == 1 and Right_IR == 1) {
-    stop_moving();
+  //if (Left_IR == 0 and Right_IR == 0) {
+    //move_forward(175);
+  //} else if (Left_IR == 1 and Right_IR == 0) {
+    //turn_left(100);
+  //} else if (Left_IR == 0 and Right_IR == 1) {
+    //turn_right(100);
+  //} else if (Left_IR == 1 and Right_IR == 1) {
+    //stop_moving();
     // need to move forward and somehow orient whihc way to go as this means we have met an impass where the road splits or we are somehow the wrong way
-  }
+  //}
+
+  // Ultrasonic Sensor
+  double duration, distance;
+  digitalWrite(TrigWavePin, HIGH);
+  delayMicroseconds(50);
+  digitalWrite(TrigWavePin, LOW); //Untrigger wave
+  //Calculate distance
+  duration = pulseIn(EchoReceivePin, HIGH);
+  distance = scalingFactor * ((duration/Convert)*SPEEDOFSOUND)/2;
+
   delay(0.5);
 }
 
@@ -127,5 +152,4 @@ void PID(int Left_IR, int Right_IR, int I, int last_error) {
     int left_motor_speed = BASESPEED + correction;
     int right_motor_speed = BASESPEED - correction;
 
-    
 }
