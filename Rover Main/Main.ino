@@ -1,24 +1,28 @@
 // Set constan variables
-#define TrigWavePin 13
-#define EchoReceivePin 12
-#define ScaleFactor 10
-#define IRLeft 3
-#define IRRight 2
+#define TrigPinLeft 13
+#define EchoPinLeft 12
+#define TrigPinRight 11
+#define EchoPinRight 10
+#define IR 2
 #define LeftMotorEnable 9
 #define LeftMotorIn1 8
 #define LeftMotorIn2 7
 #define RightMotorEnable 6
 #define RightMotorIn1 5
 #define RightMotorIn2 4
-#define BASESPEED 125
 #define KP 1
 #define KI 1
 #define KD 1
 #define TrigWavePin 13
 #define EchoReceivePin 12
-double scalingFactor = 1.13;
+double BASESPEED = 125
+double ScalingFactorLeft = 1.13;
+double ScalingFactorRight = 1.09;
 double Convert = 1000000.0;
 double SPEEDOFSOUND = 331;
+double durationLeft, distanceLeft, durationRight, distanceRight;
+double I = 0;
+double last_error = 0;
 
 void set_direction(int in1, int in2, char direction[]) {
   if (direction == "Forward") {
@@ -75,18 +79,16 @@ void stop_moving() {
   analogWrite(RightMotorEnable, 0);
 }
 
-
-
 void setup() {
-  // put your setup code here (Pins etc), to run once:
   Serial.begin (9600);
-  // Set up ultrasonic distance sensor
-  pinMode(TrigWavePin, OUTPUT); // Sets pin 13 to output to trigger ultrasonic pulse
-  pinMode(EchoReceivePin, INPUT); // Receives echo from sensor
+  // Set up ultrasonic distance sensors
+  pinMode(TrigPinLeft, OUTPUT); // Sets pin 13 to output to trigger ultrasonic pulse
+  pinMode(EchoPinLeft, INPUT); // Receives echo from sensor
+  pinMode(TrigPinRight, OUTPUT);
+  pinMode(EchoPinRight, INPUT);
 
   //Set up IR Sensors
-  pinMode(IRLeft, INPUT);
-  pinMode(IRRight, INPUT);
+  pinMode(IR, INPUT);
 
   //Set up motor pins
   pinMode(LeftMotorEnable, OUTPUT);
@@ -95,61 +97,47 @@ void setup() {
   pinMode(RightMotorEnable, OUTPUT);
   pinMode(RightMotorIn1, OUTPUT);
   pinMode(RightMotorIn2, OUTPUT);
-  
-  // Set up ultrasonic distance sensor
-  pinMode(TrigWavePin, OUTPUT); // Sets pin 13 to output to trigger ultrasonic pulse
-  pinMode(EchoReceivePin, INPUT); // Receives echo from sensor
-
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
-  int Left_IR = digitalRead(IRLeft);
-  int Right_IR = digitalRead(IRRight);
-  Serial.println("Left IR: ");
-  Serial.print(Left_IR);
-  Serial.println();
-  Serial.println("Right IR: ");
-  Serial.print(Right_IR);
-  Serial.println();
+void loop () {
+    set_direction(RightMotorIn1, RightMotorIn2, "Forward");
+    set_direction(LeftMotorIn1, LeftMotorIn2, "Forward");
+    move_forward(150);
+    delay(1);
+}
 
-  //int I = 0;
-  //int last_error = 0;
-  //set_direction(LeftMotorIn1, LeftMotorIn2, "Forward");
-  //set_direction(RightMotorIn1, RightMotorIn2, "Forward");
-  //PID(Left_IR, Right_IR, I, last_error);
-
-  //if (Left_IR == 0 and Right_IR == 0) {
-    //move_forward(175);
-  //} else if (Left_IR == 1 and Right_IR == 0) {
-    //turn_left(100);
-  //} else if (Left_IR == 0 and Right_IR == 1) {
-    //turn_right(100);
-  //} else if (Left_IR == 1 and Right_IR == 1) {
-    //stop_moving();
-    // need to move forward and somehow orient whihc way to go as this means we have met an impass where the road splits or we are somehow the wrong way
-  //}
-
+void control() {
   // Ultrasonic Sensor
-  double duration, distance;
-  digitalWrite(TrigWavePin, HIGH);
+  digitalWrite(TrigPinLeft, HIGH);
+  digitalWrite(TrigPinRight, HIGH);
   delayMicroseconds(50);
-  digitalWrite(TrigWavePin, LOW); //Untrigger wave
+  digitalWrite(TrigPinLeft, LOW);
+  digitalWrite(TrigPinRight, LOW); //Untrigger wave
   //Calculate distance
-  duration = pulseIn(EchoReceivePin, HIGH);
-  distance = scalingFactor * ((duration/Convert)*SPEEDOFSOUND)/2;
+  durationLeft = pulseIn(EchoPinLeft, HIGH);
+  durationRight = pulseIn(EchoPinRight, HIGH);
+  distanceLeft = ScalingFactorLeft * ((durationLeft/Convert)*SPEEDOFSOUND)/2;
+  distanceRight =  ScalingFactorRight * ((durationRight/Convert)*SPEEDOFSOUND)/2;
 
-  delay(0.5);
+  set_direction(LeftMotorIn1, LeftMotorIn2, "Forward");
+  set_direction(RightMotorIn1, RightMotorIn2, "Forward");
+  PID(distanceLeft, distanceRight, I, last_error);
+  
+  delay(1);
 }
 
-void PID(int Left_IR, int Right_IR, int I, int last_error) {
-    int error = Left_IR - Right_IR;
-    int P = error;
+void PID(int LeftWallDist, int RightWallDist, int I, int last_error) {
+    double error, P, D, correction, left_motor_speed, right_motor_speed;
+    error = LeftWallDist - RightWallDist;
+    P = error;
     I = I + error;
-    int D = error - last_error;
+    D = error - last_error;
 
-    int correction = KP*P + KI*I + KD*D;
-    int left_motor_speed = BASESPEED + correction;
-    int right_motor_speed = BASESPEED - correction;
+    correction = KP*P + KI*I + KD*D;
+    left_motor_speed = max(0, min(255, (BASESPEED - correction)));
+    right_motor_speed = max(0, min(255, (BASESPEED + correction)));
+    analogWrite(LeftMotorEnable, left_motor_speed);
+    analogWrite(RightMotorEnable, right_motor_speed);
 
+    last_error = error;
 }
